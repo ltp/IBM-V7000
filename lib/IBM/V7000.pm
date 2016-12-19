@@ -1,4 +1,4 @@
-package IBM::V7000Unified;
+package IBM::V7000;
 
 use strict;
 use warnings;
@@ -6,10 +6,9 @@ use warnings;
 use IBM::StorageSystem;
 use Carp qw(croak);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
-our @METHODS=qw(array disk drive enclosure export fabric filesystem health host 
-interface iogroup mount node quota service snapshot task vdisk);
+our @METHODS=qw(array drive enclosure host iogroup vdisk);
 
 our @ATTRS = qw(auth_service_cert_set auth_service_configured auth_service_enabled 
 auth_service_pwd_set auth_service_type auth_service_url auth_service_user_name 
@@ -27,7 +26,7 @@ compression_cpu_pc cpu_pc drive_r_io drive_r_mb drive_r_ms drive_w_io
 drive_w_mb drive_w_ms fc_io fc_mb iscsi_io iscsi_mb mdisk_r_io mdisk_r_mb mdisk_r_ms 
 mdisk_w_io mdisk_w_mb mdisk_w_ms sas_io sas_mb total_cache_pc vdisk_r_io vdisk_r_mb 
 vdisk_r_ms vdisk_w_io vdisk_w_mb vdisk_w_ms write_cache_pc);
-# TO DO: mdisk lsmgr
+# TO DO: mdsik
 
 foreach my $method ( @METHODS ) {
 	{
@@ -66,7 +65,7 @@ foreach my $attr ( @ATTRS ) {
 sub new {
         my ($class, %args) = @_;
         my $self = bless {} , $class;
-        my %opts = ( user => $self->{user}, key_path => $self->{key_path}, batch_mode => 1, master_opts => '-q' );
+        my %opts = ( user => $self->{user}, key_path => $self->{key_path}, batch_mode => 1, master_opts => '-q', );
 
         $self->{ss} = IBM::StorageSystem->new( %args );
 
@@ -75,7 +74,7 @@ sub new {
 
 =head1 NAME
 
-IBM::V7000Unified - Perl API to IBM V7000 Unified CLI
+IBM::V7000 - Perl API to IBM V7000 CLI
 
 =head1 VERSION
 
@@ -83,19 +82,18 @@ Version 0.01
 
 =head1 SYNOPSIS
 
-IBM::V7000Unified is a Perl API to IBM V7000 Unified CLI.
+IBM::V7000 is a Perl API to IBM V7000 CLI.
 
 =head1 METHODS
 
 =head3 new 
 
-        my $ibm = IBM::V7000Unified->new(      
-					user            => 'admin',
-                                        host            => 'my-v7000-unified.company.com',
+        my $ibm = IBM::V7000->new(      user            => 'admin',
+                                        host            => 'my-v7000.company.com',
                                         key_path        => '/path/to/my/.ssh/private_key'
                         ) or die "Couldn't create object! $!\n";
 
-Constructor - creates a new IBM::V7000Unified object.  This method accepts three mandatory parameters
+Constructor - creates a new IBM::V7000 object.  This method accepts three mandatory parameters
 and one optional parameter, the three mandatory parameters are:
 
 =over 3
@@ -585,43 +583,6 @@ system even if a cached object exists.
 
 Returns an array of L<IBM::StorageSystem::Array> objects representing all arrays in the target system.
 
-=head3 disk ( $id ) 
-
-        # Get the disk named "system_vol_00" as an IBM::StorageSystem::Disk object
-        my $disk = $ibm->disk(system_vol_00);
-        
-        # Print the disk status
-        print $disk->status;
-
-        # Alternately
-        print $ibm->disk(system_vol_00)->status;
-
-Returns a L<IBM::StorageSystem::Disk> object representing the disk specified by the value of the id parameter, 
-which should be a valid disk name in the target system.
-
-=head3 get_disk( $id )
-
-This is a functionally equivalent non-caching implementation of the B<disk> method.
-
-=head3 get_disks
-
-        # Print a listing of all disks in the target system including their name, the assigned pool and status
-
-        printf( "%-20s%-20s%-20s\n", "Name", "Pool", "Status" );
-        printf( "%-20s%-20s%-20s\n", "-----", "------", "-------" );
-        foreach my $disk ( $ibm->get_disks ) { printf( "%-20s%-20s%-20s\n", $disk->name, $disk->pool, $disk->status ) }
-
-        # Prints something like:
-        #
-        # Name                Pool                Status              
-        # -----               ------              -------             
-        # silver_vol_00       silver              ready               
-        # silver_vol_01       silver              ready               
-        # silver_vol_02       silver              ready    
-        # ... etc.
-
-Returns an array of L<IBM::StorageSystem::Disk> objects representing all disks in the target system.
-
 =head3 drive ( $id ) 
 
         # Get drive ID 2 as an IBM::StorageSystem::Drive object
@@ -693,105 +654,6 @@ This method is a functionally equivalent non-caching implementation of the B<enc
 Returns an array of L<IBM::StorageSystem::Enclosure> objects representing all enclosures present in teh target
 system.
 
-=head3 get_exports
-
-        # Print a listing of all configured exports containing the export name, the export path,
-        # the export protocol and the export status.
-
-        printf( "%-20s%-40s%-10s%-10s\n", 'Name', 'Path', 'Protocol', 'Active' );
-
-        foreach my $export ( $ibm->get_exports ) { 
-                print '-'x100,"\n";
-                printf( "%-20s%-40s%-10s%-10s\n", $export->name, $export->path, $export->protocol, $export->active )
-        }
-
-        # Prints something like:
-        #
-        #Name                Path                                    Protocol  Active    
-        # ----------------------------------------------------------------------------------------------------
-        # homes_root          /ibm/fs1/homes                          NFS       true      
-        # ----------------------------------------------------------------------------------------------------
-        # shares_root         /ibm/fs1/shares                         NFS       true      
-        # ----------------------------------------------------------------------------------------------------
-        # test                /ibm/fs1/test                           CIFS      true      
-        # ----------------------------------------------------------------------------------------------------
-        # ... etc.
-
-Returns all configured exports on the target system as an array of L<IBM::StorageSystem::Export> objects.
-
-=head3 get_fabrics
-
-        # Print a list of our fabrics (sorted by fabric ID) including the fabric ID, node ID, port ID,
-        # local WWPN, remote WWPN and fabric status.
-
-        printf( "%-5s%-8s%-8s%-20s%-20s%-10s\n", 'ID', 'Node', 'Port', 'Local WWPN', 'Remote WWPN', 'Status');
-        print '-'x80,"\n";
-
-        for my $fabric ( map { $_->[0] } sort { $a->[1] cmp $b->[1] } map { [$_, $_->id] } $ibm->get_fabrics ) {
-                printf( "%-5s%-8s%-8s%-20s%-20s%-10s\n", $fabric->id, $fabric->node_name, $fabric->local_port,
-                        $fabric->local_wwpn, $fabric->remote_wwpn, $fabric->state )
-        }
-
-        # Prints something like:
-        #
-        # ID   Node    Port    Local WWPN          Remote WWPN         Status    
-        # --------------------------------------------------------------------------------
-        # 1    node1   1       5005076802159D73    21000024FF43DE7B    active    
-        # 1    node1   2       5005076802259D73    21000024FF35B8FC    active    
-        # 2    node2   1       5005076802159D74    21000024FF43DE7A    active    
-        # 2    node2   2       5005076802259D74    21000024FF35B8FD    active 
-
-Returns all configured fabrics on the target system as an array of L<IBM::StorageSystem::Fabric> objects.
-
-=head3 filesystem( $filesystem_name )
-
-        # Print the block size of file system 'fs1'
-        print $ibm->filesystem(fs1)->block_size;
-        
-        # Get the file system 'fs2' as a IBM::StorageSystem::FileSystem object
-        my $fs = $ibm->filesystem(fs2);
-
-        # Print the mount point of this file system
-        print "fs2 mount point: " . $fs->mount_point . "\n";
-
-        # Call a function if inode usage on file system 'fs2' exceeds 90% of maximum allocation.
-        monitoring_alert( 'Inode allocation > 90% on '.$filesystem->device_name ) 
-                if ( ( ( $fs->inodes / $fs->max_inodes ) * 100 ) > 90 );
-
-Returns the file system specified by the value of the named parameter as a L<IBM::StorageSystem::FileSystem> object.
-
-Note that this is a caching method and a cached object will be retrieved if one exists,  If you require a
-non-cached object, then please use the B<get_filesystem> method.
-
-=head3 get_filesystem( $filesystem_name )
-
-This is a non-caching functionally equivalent implementation of the B<filesystem> method.  Use this method if
-you require the file system information to be retrieved directly from the target system rather than cache.
-
-=head3 get_filesystems
-
-        # Do the same for all file systems
-        map { monitoring_alert( 'Inode allocation > 90% on '.$_->device_name )
-                if ( ( ( $fs->inodes / $fs->max_inodes ) * 100 ) > 90 ) } $ibm->get_filesystems;
-
-Returns an array of L<IBM::StorageSystem:FileSystem> objects representing all configured file systems on the
-target system.
-
-=head3 get_healths
-
-        # Simple one-liner to print the sensor status and value for any error conditions.
-        map { print join ' -> ', ( $_->sensor, $_->value."\n" ) } 
-                grep { $_->status =~ /ERROR/ } $ibm->get_healths;
-
-        # e.g.
-        # CLUSTER -> Alert found in component cluster
-        # MDISK -> Alert found in component mdisk
-        # NODE -> Alert found in component node
-
-Returns an array of L<IBM::StorageSystem::Health> objects representative of all health sensors on the target system.
-
-B<Note> that this method is only implemented on StorageSystem Unified systems and not StorageSystem SONAS systems.
-
 =head3 host( $hostname )
 
         # Print the host status of the attached host 'sauron'
@@ -835,52 +697,6 @@ This is a functionally equivalent non-caching implementation of the B<host> meth
         # ... etc.
 
 Returns an array of L<IBM::StorageSystem::Host> objects representing all host attached to the target system.
-
-=head3 interface ( $id )
-
-        # Get interface ethX0 on management node mgmt001st001 as an IBM::StorageSystem::Interface object
-        # Print the interface status
-        print $interface->up_or_down;
-
-        # Print the interface status
-        print $interface->speed;
-
-        # Alternately;
-        print $ibm->interface('mgmt001st001:ethX0')->speed;
-
-Returns the interface identified by the value of the id parameter as an L<IBM::StorageSystem::Interface> object.
-
-The value of the id parameter must be a valid node and interface name separated by a colon.
-
-B<Note> that this method implements caching and a cached object will be returned shoudl one be present.
-If you require a non-cached object then please use the B<get_iogroup> method.
-
-=head3 get_interface( $id )
-
-This is a functionally equivalent non-caching implementation of the B<interface> method.
-
-=head3 get_interfaces
-
-        # Print a list of all interfaces, their status, speed and role
-        
-        foreach my $interface ( $ibm->get_interfaces ) {
-                print "Interface: " . $interface->interface . "\n";
-                print "\tStatus: " . $interface->up_or_down . "\n";
-                print "\tSpeed: " . $interface->speed . "\n";
-                print "\tRole: " . $interface->isubordinate_or_master . "\n----------\n";
-        }
-        
-                 'node:interface' => 'mgmt002st001:ethXsl1_1',
-                 'MAC' => '00%3A90%3Afa%3A05%3A88%3A9e',
-                 'IPaddresses' => '',
-                 'MTU' => '1500',
-                 'up_or_down' => 'UP',
-                 'lsnwinterface' => 'lsnwinterface',
-                 'speed' => '10000',
-                 'master_or_subordinate' => 'SUBORDINATE',
-                 'transmit_hash_policy' => ''
-
-Returns an array of L<IBM::StorageSystem::Interface> objects representing all interfaces on the target system.
 
 =head3 iogroup( $id )
 
@@ -927,135 +743,6 @@ This is a functionally equivalent non-caching implementation of the B<iogroup> m
 
 Returns an array of L<IBM::StorageSystem::IOGroup> objects representing all configured I/O groups on the target system.
 
-=head3 mount( $mount )
-
-        # Print mount status of file system fs1
-        print "Mount status: " . $ibm->mount(fs1) . "\n";
-
-        # Print only those file system that aren’t mounted
-        map { print $_->file_system . " is not mounted.\n" }
-        grep { $_->mount_status ne ’mounted’ }
-        $ibm->get_mounts;
-
-Returns the mount identified by the mount parameter as a L<IBM::StorageSystem::Mount> object.
-
-B<Note> that this method implements caching and a cached object will be returned shoudl one be present.
-If you require a non-cached object then please use the B<get_iogroup> method.
-
-=head3 get_mount( $mount )
-
-This is a functionally equivalent non-caching implementation of the B<mount> method.
-
-=head3 get_mounts
-
-This method returns an array of L<IBM::StorageSystem::Mount> objects representing all mounts on the target system.
-
-=head3 node( $node )
-
-        # Get node mgmt001st001 as an IBM::StorageSystem::Node object
-        my $node = $ibm->node( mgmt001st001 );
-        
-        # Print the node description
-        print "Description: " . $node->description . "\n";
-
-        # Prints something like: "Description: active management node"
-        # Or alternately;
-        print "Description: " . $ibm->node( mgmt001st001 )->description . "\n";
-
-
-Returns the node identified by the value of the node parameter as a L<IBM::StorageSystem::Node> object.
-
-B<Note> that this method implements caching and that a cached object will be returned if one is available.
-If you require a non-cached object, then please use the non-caching B<get_node> method.
-
-=head3 get_node( $node )
-
-This is a functionally equivalent non-caching implementation of the B<node> method.
-
-=head3 get_nodes
-
-        # Print the GPFS and CTDB stati of all nodes
-        foreach my $node ( $ibm->get_nodes ) {
-                print "GPFS status: " . $node->GPFS_status . " - CTDB status: " . $node->CTDB_status . "\n"
-        }
-
-Returns an array of L<IBM::StorageSystem::Node> objects representing all configured nodes on the target system.
-
-=head3 get_quotas 
-
-        # Call a function to send a quota warning email for any quotas where the current
-        # usage exceeds 85% of the quota usage hard limit.
-
-        map  { send_quota_warning_email( $_ ) }
-        grep { ( $_->used_usage / $_->HL_usage ) > 0.85 }
-        grep { $_->name ne 'root' }
-        grep { $_->type eq 'U' } $ibm->get_quotas;
-
-Returns all quotas defined on the target system as an array of L<IBM::StorageSystem::Quota> objects.
-
-=head3 service( $service )
-
-        # Print the enabled status of the NFS service
-        print $ibm->service(NFS)->enabled;
-
-        # Print the configured and enabled status of all services
-        printf( "%-20s%-20s%-20s\n", 'Service', 'Configured', 'Active' );
-        map { printf( "%-20s%-20s%-20s\n", $_->name, $_->configured, $_->active ) } $ibm->get_services;
-
-Returns a L<IBM::StorageSystem::Service> object representing the service identified by the value of the
-service parameter.
-
-B<Note> that this method implements caching and that a cached object will be returned if one is available.
-If you require a non-cached object, then please use the non-caching B<get_node> method.
-
-=head3 get_service( $service )
-
-This is a functionally equivalent non-caching implementation of the B<service> method.
-
-=head3 get_services
-
-Returns an array of L<IBM::StorageSystem::Service> objects representing all configured services on the target
-system.
-
-=head3 task( $task )
-
-        # Print the status of the SNAPSHOTS task
-        my $snapshots = $ibm->task(SNAPSHOTS);
-        print "Status: " . $snapshots->status . "\n";
-
-        # Alternately
-        print "Status: " . $ibm->task(SNAPSHOTS)->status . "\n";
-
-Return the task identified by the value of the task parameter as an L<IBM::StorageSystem::Task> object.
-
-B<Note> that this method implements caching and that a cached object will be returned if one is available.
-If you require a non-cached object, then please use the non-caching B<get_node> method.
-
-=head3 task( $task )
-
-        # Print the status of the SNAPSHOTS task
-        my $snapshots = $ibm->task(SNAPSHOTS);
-        print "Status: " . $snapshots->status . "\n";
-
-        # Alternately
-        print "Status: " . $ibm->task(SNAPSHOTS)->status . "\n";
-
-Return the task identified by the value of the task parameter as an L<IBM::StorageSystem::Task> object.
-
-B<Note> that this method implements caching and that a cached object will be returned if one is available.
-If you require a non-cached object, then please use the non-caching B<get_node> method.
-
-=head3 get_task( $task )
-
-This is a functionally equivalent non-caching implementation of the B<task> method.
-
-=head3 get_tasks
-
-        # Call an alert function for any tasks that are not in an OK state
-        map { alert( $_->name ) } grep { $_->status ne 'OK' } $ibm->get_tasks;
-
-Returns an array of L<IBM::StorageSystem::Task> objects representing all tasks on the target system.
-
 =head3 vdisk( $id )
 
         # Get the VDisk ID 3 and print the VDisk UUID
@@ -1095,19 +782,19 @@ Returns all configured VDisks in the target system as an array of L<IBM::Storage
 
 =head1 AUTHOR
 
-Luke Poskitt, C<< <ltp at cpan.org> >>
+Luke Poskitt, C<< <lukep at deakin.edu.au> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-ibm-v7000unified at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=IBM-V7000Unified>.  I will be notified, and then you'll
+Please report any bugs or feature requests to C<bug-ibm-v7000 at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=IBM-V7000>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc IBM::V7000Unified
+    perldoc IBM::V7000
 
 
 
@@ -1115,19 +802,19 @@ You can find documentation for this module with the perldoc command.
 
 =item * RT: CPAN's request tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=IBM-V7000Unified>
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=IBM-V7000>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/IBM-V7000Unified>
+L<http://annocpan.org/dist/IBM-V7000>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/IBM-V7000Unified>
+L<http://cpanratings.perl.org/d/IBM-V7000>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/IBM-V7000Unified/>
+L<http://search.cpan.org/dist/IBM-V7000/>
 
 =back
 
